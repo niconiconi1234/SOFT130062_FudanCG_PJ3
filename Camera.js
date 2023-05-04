@@ -6,9 +6,9 @@ class Camera {
       posUp: 0, posDown: 0, posLeft: 0, posRight: 0,
       rotUp: 0, rotDown: 0, rotLeft: 0, rotRight: 0,
     };
-    Camera.at = new Vector3([0.0, 5.0, -15.0]);
-    Camera.eye = new Vector3([20.0, 10.0, 20.0]);
-    Camera.up = new Vector3([0.0, 1.0, 0.0]);
+    Camera.at = new Vector3(CameraPara.at);
+    Camera.eye = new Vector3(CameraPara.eye);
+    Camera.up = new Vector3(CameraPara.up);
     Camera.fov = CameraPara.fov;
     Camera.near = CameraPara.near;
     Camera.far = CameraPara.far;
@@ -16,7 +16,7 @@ class Camera {
 
   static getMatrix() {
     return new Matrix4()
-        .ortho(-20.0, 20.0, -20.0, 20.0, -10.0, 200.0)
+        .perspective(Camera.fov, 1, Camera.near, Camera.far)
         .lookAt(Camera.eye.elements[0], Camera.eye.elements[1], Camera.eye.elements[2],
             Camera.at.elements[0], Camera.at.elements[1], Camera.at.elements[2],
             Camera.up.elements[0], Camera.up.elements[1], Camera.up.elements[2]);
