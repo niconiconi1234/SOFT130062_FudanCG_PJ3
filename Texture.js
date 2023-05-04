@@ -8,6 +8,7 @@ class TextureLoader {
     this.gl = config.gl;
     this.enableLight = config.enableLight;
     this.activeTextureIndex = config.activeTextureIndex;
+    this.textureImageSrc = config.textureImageSrc ? config.textureImageSrc : './image/sky.jpg'; // 纹理图片路径，默认纹理是天空(sky.jpg)
   }
 
   init() {
@@ -103,7 +104,7 @@ class TextureLoader {
 
     // Load texture image
     this.textureImage = new Image();
-    this.textureImage.src = './image/sky.jpg';
+    this.textureImage.src = this.textureImageSrc; // 纹理图片路径，默认纹理是天空(sky.jpg)
     this.textureImage.onload = ()=> {
       this.handleTextureLoad();
     };

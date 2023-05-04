@@ -41,7 +41,7 @@ class SceneLoader {
       for (let loader of this.loaders) {
         loader.render(timestamp);
       }
-      
+
       requestAnimationFrame(render, this.gl);
     };
 
@@ -94,7 +94,8 @@ class SceneLoader {
     let floorLoader = new TextureLoader(floorRes, {
       'gl': this.gl,
       'activeTextureIndex': 0,
-      'enableLight': true
+      'enableLight': true,
+      'textureImageSrc': './image/floor.jpg'
     }).init();
     this.loaders.push(floorLoader);
 
@@ -109,7 +110,8 @@ class SceneLoader {
     let boxLoader = new TextureLoader(boxRes, {
       'gl': this.gl,
       'activeTextureIndex': 1,
-      'enableLight': true
+      'enableLight': true,
+      'textureImageSrc': './image/boxface.bmp'
     }).init();
     this.loaders.push(boxLoader);
 
