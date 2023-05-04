@@ -99,13 +99,8 @@ class SimpleColoredObjectLoader {
     modelMatrix.translate(this.entity.translate[0], this.entity.translate[1], this.entity.translate[2]);
     modelMatrix.scale(this.entity.scale[0], this.entity.scale[1], this.entity.scale[2]);
 
-    // 设置u_MvpMatrix的值
-    const mvpMatrix = Camera.getMatrix();
-    mvpMatrix.concat(modelMatrix); // mvpMatrix = vpMatrix * modelMatrix
-
     this.uniformMap = {
       modelMatrix: modelMatrix,
-      mvpMatrix: mvpMatrix
     }
   }
 
@@ -114,7 +109,7 @@ class SimpleColoredObjectLoader {
     this.allocateArrayBuffer(this.bufferMap.vertexBuffer, this.a_Position) // 把vertexBuffer分配给变量a_Position
     this.allocateArrayBuffer(this.bufferMap.colorBuffer, this.a_Color) // 把colorBuffer分配给变量a_Color
     this.bindElementArrayBuffer(this.bufferMap.indexBuffer) // 把indexBuffer绑定成element array buffer
-    this.gl.uniformMatrix4fv(this.u_MvpMatrix, false, this.uniformMap.mvpMatrix.elements) // 设置u_MvpMatrix的值
+    this.setAllUniformVariables() // 设置所有uniform变量
     this.gl.drawElements(this.gl.TRIANGLES, this.index.length, this.gl.UNSIGNED_BYTE, 0);
   }
 
@@ -136,4 +131,14 @@ class SimpleColoredObjectLoader {
   bindElementArrayBuffer(buf) {
     this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, buf);
   }
+
+
+  /**
+   * 渲染前，设置所有uniform变量
+   */
+  setAllUniformVariables() {
+    const mvpMatrix = Camera.getMatrix().multiply(this.uniformMap.modelMatrix)
+    this.gl.uniformMatrix4fv(this.u_MvpMatrix, false, mvpMatrix.elements);
+  }
 }
+
