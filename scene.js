@@ -157,8 +157,6 @@ ObjectList = [
     kads: [0.2, 0.8, 0.5],
     rotateAxisX: 0, // 小鸟绕轴直线x=rotateAxisX, z=rotateAxisZ旋转(即绕经过点(rotateAxisX,0,rotateAxisZ)，垂直于xoz平面的直线)旋转
     rotateAxisZ: -5,
-    rotateAngle: 0, // 小鸟绕轴旋转rotateAngle度
-    rotateSpeed: 120, // 小鸟绕轴旋转速度,120度每秒
     transform: [
       {type: "translate", content: [5, 5, -10]},
       {type: "rotate", content: [0, 0, 1, 0]},

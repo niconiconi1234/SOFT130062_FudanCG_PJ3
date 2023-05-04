@@ -25,7 +25,6 @@ class SceneLoader {
     this.lookat_text = lookat_text;
     this.loaders = [];
     this.keyboardController = new KeyboardController();
-    this.birdObject = null;
   }
 
   init() {
@@ -34,20 +33,23 @@ class SceneLoader {
 
     this.initLoaders();
 
+    let birdRotationAngle = 0;
+    const birdRotateSpeed = 120; // 小鸟旋转速度，每秒旋转120度
+
     let render = (timestamp) => {
-      // 更新小鸟的旋转角度，这里的this.birdObject和scene.js里的ObjectList[1]是同一个对象，也就是和this.loaders[4].entity是同一个对象
-      // （this.loaders[4]是一个BirdObjectLoader类型的对象）
-      // 因此修改this.birdObject的rotateAngle属性，也就是修改了this.loaders[4].entity的rotateAngle属性
-      // 这样在BirdObjectLoader里的render方法里就能拿到最新的旋转角度了
-      // 因此可以实现小鸟的旋转
-      this.birdObject.rotateAngle = animateRotateAngle(this.birdObject.rotateAngle, this.birdObject.rotateSpeed)
+
+      birdRotationAngle = animateRotateAngle(birdRotationAngle, birdRotateSpeed)
 
       this.initWebGL();
 
       this.initCamera(timestamp);
 
       for (let loader of this.loaders) {
-        loader.render(timestamp);
+        if (loader instanceof BirdObjectLoader) {
+          loader.render(timestamp, birdRotationAngle);
+        } else {
+          loader.render(timestamp);
+        }
       }
 
       requestAnimationFrame(render, this.gl);
@@ -129,7 +131,6 @@ class SceneLoader {
       // Add animation to bird
       if (o.objFilePath.indexOf('bird') > 0) { // 因为bird需要会动，所以用单独的BirdObjectLoader
         loader = new BirdObjectLoader(o, {'gl': this.gl}).init();
-        this.birdObject = o;
       } else { // 普通静态(不会动)的物体，就用普通的ObjectLoader
         loader = new ObjectLoader(o, {'gl': this.gl}).init();
       }

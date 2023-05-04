@@ -5,19 +5,18 @@ class BirdObjectLoader extends ObjectLoader {
   }
 
 
-  render(timestamp) {
+  render(timestamp, birdRotationAngle) {
     // 因为小鸟需要会动，所以我们需要重写render方法，在render方法中根据小鸟当前的位置，更新小鸟的modelMatrix
     // (原先的modelMatrix在initPerspective函数中初始化以后，就是固定的)
-
     this.g_modelMatrix = new Matrix4()
 
     const deg2rad = (deg) => deg * Math.PI / 180 // 角度转弧度
 
     // 小鸟的运动（动画）矩阵
     let birdMoveMat = new Matrix4()
-    birdMoveMat.translate(0, -2 * Math.sin(deg2rad(this.entity.rotateAngle)), 0) // 小鸟的飞行高度与小鸟的旋转角度成正弦关系
+    birdMoveMat.translate(0, -2 * Math.sin(deg2rad(birdRotationAngle)), 0) // 小鸟的飞行高度与小鸟的旋转角度成正弦关系
     birdMoveMat.translate(this.entity.rotateAxisX, 0, this.entity.rotateAxisZ);
-    birdMoveMat.rotate(this.entity.rotateAngle, 0, 1, 0);
+    birdMoveMat.rotate(birdRotationAngle, 0, 1, 0);
     birdMoveMat.translate(-this.entity.rotateAxisX, 0, -this.entity.rotateAxisZ);
 
     // 应用小鸟之前原有的变换，这部分和ObjectLoader中的initPerspective函数中的代码一样
