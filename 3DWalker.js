@@ -98,6 +98,13 @@ class SceneLoader {
     }).init();
     this.loaders.push(floorLoader);
 
+    // 加载颜色渐变正方体
+    let colorBoxLoader = new SimpleColoredObjectLoader(cubeRes, {
+      'gl': this.gl,
+      'enableLight': true
+    }).init();
+    this.loaders.push(colorBoxLoader);
+
     // Load box
     let boxLoader = new TextureLoader(boxRes, {
       'gl': this.gl,
@@ -115,5 +122,6 @@ class SceneLoader {
       }
       this.loaders.push(loader);
     }
+
   }
 }
