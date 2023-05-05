@@ -3,7 +3,7 @@
 class Camera {
   static init() {
     Camera.state = {
-      posUp: 0, posDown: 0, posLeft: 0, posRight: 0,
+      posUp: 0, posDown: 0, posLeft: 0, posRight: 0, posForward: 0, posBackward: 0,
       rotUp: 0, rotDown: 0, rotLeft: 0, rotRight: 0,
     };
     Camera.at = new Vector3(CameraPara.at);

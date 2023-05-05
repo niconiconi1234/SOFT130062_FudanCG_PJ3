@@ -72,20 +72,23 @@ class SceneLoader {
     let cameraMap = new Map();
     cameraMap.set('a', 'posLeft');
     cameraMap.set('d', 'posRight');
+    cameraMap.set('w', 'posForward');
+    cameraMap.set('s', 'posBackward');
     cameraMap.set('j', 'rotLeft');
     cameraMap.set('l', 'rotRight');
+    cameraMap.set('i', 'rotUp');
+    cameraMap.set('k', 'rotDown');
 
-    cameraMap.forEach((val, key)=> {
-          this.keyboardController.bind(key, {
-            on: (() => {
-              Camera.state[val] = 1;
-            }),
-            off: (() => {
-              Camera.state[val] = 0;
-            })
-          });
-        }
-    )
+    cameraMap.forEach((val, key) => {
+      this.keyboardController.bind(key, {
+        on: (() => {
+          Camera.state[val] = 1;
+        }),
+        off: (() => {
+          Camera.state[val] = 0;
+        })
+      });
+    });
 
     // 按下F点光源开启，再按一次关闭
     this.keyboardController.bind('f', {
@@ -102,11 +105,13 @@ class SceneLoader {
     let elapsed = timestamp - this.keyboardController.last;
     this.keyboardController.last = timestamp;
 
+    let posX = (Camera.state.posForward - Camera.state.posBackward) * MOVE_VELOCITY * elapsed / 1000;
     let posY = (Camera.state.posRight - Camera.state.posLeft) * MOVE_VELOCITY * elapsed / 1000;
+    let rotX = (Camera.state.rotUp - Camera.state.rotDown) * ROT_VELOCITY * elapsed / 1000 / 180 * Math.PI;
     let rotY = (Camera.state.rotRight - Camera.state.rotLeft) * ROT_VELOCITY * elapsed / 1000 / 180 * Math.PI;
 
-    if (posY) Camera.move(0, posY, this.position_text, this.lookat_text);
-    if (rotY) Camera.rotate(0, rotY, this.position_text, this.lookat_text);
+    if (posY || posX) Camera.move(posX, posY, this.position_text, this.lookat_text);
+    if (rotX || rotY) Camera.rotate(rotX, rotY, this.position_text, this.lookat_text);
   }
 
   initLoaders() {
