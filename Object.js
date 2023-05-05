@@ -33,29 +33,18 @@ class ObjectLoader {
   initShaders() {
     // Vertex shader program
     let VSHADER_SOURCE = `
-        attribute vec4 a_Position;
-        attribute vec4 a_Color;
-        attribute vec4 a_Normal;
+        attribute vec4 a_Position; varying vec3 v_Position;
+        attribute vec4 a_Color; varying vec4 v_Color; // 这里的a_Color是从obj文件中读取的，实际只使用了其alpha通道。物体真正的颜色是u_Color。
+        attribute vec4 a_Normal; varying vec3 v_Normal;
         uniform mat4 u_MvpMatrix;
         uniform mat4 u_ModelMatrix;
         uniform mat4 u_NormalMatrix;
-        varying vec4 v_Color;
         uniform vec3 u_Color;
-        uniform vec3 u_LightDirection;
-        uniform vec3 u_AmbientLight;
         void main() {
           gl_Position = u_MvpMatrix * a_Position;
-
-          vec4 normal1 = u_NormalMatrix * a_Normal;
-
-          vec3 normal = normalize(normal1.xyz);
-
-          float nDotL = max(dot(u_LightDirection, normal), 0.0);
-          vec3 u_DiffuseLight = vec3(1.0, 1.0, 1.0);
-          vec3 diffuse = u_DiffuseLight * u_Color * nDotL;
-          vec3 ambient = u_AmbientLight * u_Color;
-
-          v_Color = vec4(diffuse + ambient, a_Color.a);
+          v_Color = vec4(u_Color.rgb, a_Color.a);
+          v_Normal = normalize(vec3(u_NormalMatrix * a_Normal));
+          v_Position = vec3(u_ModelMatrix * a_Position);
         }`;
 
     // Fragment shader program
@@ -64,8 +53,21 @@ class ObjectLoader {
         precision mediump float;
         #endif
         varying vec4 v_Color;
+        varying vec3 v_Normal;
+        varying vec3 v_Position;
+        uniform vec3 u_LightDirection; // 平行光的光照方向
+        uniform vec3 u_AmbientLight; // 环境光的颜色
         void main() {
-          gl_FragColor = v_Color;
+          vec3 paraLight = vec3(1.0, 1.0, 1.0); // 平行光的颜色
+          
+          vec3 normal = v_Normal;
+          vec3 lightDirection = normalize(u_LightDirection);
+
+          float nDotL = max(dot(lightDirection, normal), 0.0);
+          vec3 diffuse1 = paraLight * v_Color.xyz * nDotL; // 平行光造成的漫反射光的颜色
+          vec3 ambient = u_AmbientLight * v_Color.xyz;
+          
+          gl_FragColor = vec4(diffuse1 + ambient, v_Color.a);
         }`;
 
     // Initialize shaders
@@ -151,10 +153,10 @@ class ObjectLoader {
       this.initPerspective();
     }
 
-    let lightDirection = new Vector3([0.15, 0.15, 0.17]);
+    let lightDirection = new Vector3(sceneDirectionLight); // 平行光的方向
     lightDirection.normalize();
     this.gl.uniform3fv(this.u_LightDirection, lightDirection.elements);
-    this.gl.uniform3fv(this.u_AmbientLight, new Vector3([1.2, 1.2, 1.2]).elements);
+    this.gl.uniform3fv(this.u_AmbientLight, sceneAmbientLight); // 环境光的颜色
 
     this.gl.uniform3fv(this.u_Color, new Vector3(this.entity.color).elements);
 

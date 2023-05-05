@@ -26,14 +26,17 @@ class TextureLoader {
   initShaders() {
     // Vertex shader program
     let VSHADER_SOURCE = `
-            attribute vec4 a_Position;
+            attribute vec4 a_Position; varying vec3 v_Position;
+            attribute vec2 a_TexCoord; varying vec2 v_TexCoord;
+            attribute vec4 a_Normal; varying vec3 v_Normal;
             uniform mat4 u_MvpMatrix;
-            attribute vec2 a_TexCoord;
-            varying vec2 v_TexCoord;
-
+            uniform mat4 u_ModelMatrix;
+            uniform mat4 u_NormalMatrix;
             void main() {
               gl_Position = u_MvpMatrix * a_Position;
               v_TexCoord = a_TexCoord;
+              v_Position = vec3(u_ModelMatrix * a_Position);
+              v_Normal = normalize(vec3(u_NormalMatrix * a_Normal));
             }`;
 
     // Fragment shader program
@@ -43,8 +46,22 @@ class TextureLoader {
             #endif
             uniform sampler2D u_Sampler;
             varying vec2 v_TexCoord;
+            varying vec3 v_Position;
+            varying vec3 v_Normal;
+            uniform vec3 u_LightDirection; // 平行光的光照方向
+            uniform vec3 u_AmbientLight; // 环境光的颜色
             void main() {
-              gl_FragColor = texture2D(u_Sampler, v_TexCoord);
+              vec3 paraLight = vec3(1.0, 1.0, 1.0); // 平行光的颜色
+              vec4 color = texture2D(u_Sampler, v_TexCoord); // 从纹理中获取颜色
+              
+              vec3 normal = v_Normal;
+              vec3 lightDirection = normalize(u_LightDirection);
+
+              float nDotL = max(dot(lightDirection, normal), 0.0);
+              vec3 diffuse1 = paraLight * color.xyz * nDotL; // 平行光造成的漫反射光的颜色
+              vec3 ambient = u_AmbientLight * color.xyz;
+          
+              gl_FragColor = vec4(diffuse1 + ambient, color.a);
             }`;
 
     // Initialize shaders
@@ -68,12 +85,15 @@ class TextureLoader {
 
 
     this.g_normalMatrix = new Matrix4();
-    // Assign the buffer object to a_Position and enable the assignment
     this.a_Position = this.gl.getAttribLocation(this.gl.program, 'a_Position');
-    // Assign the buffer object to a_TexCoord variable and enable the assignment of the buffer object
     this.a_TexCoord = this.gl.getAttribLocation(this.gl.program, 'a_TexCoord');
+    this.a_Normal = this.gl.getAttribLocation(this.gl.program, 'a_Normal');
 
     this.u_MvpMatrix = this.gl.getUniformLocation(this.program, 'u_MvpMatrix');
+    this.u_ModelMatrix = this.gl.getUniformLocation(this.program, 'u_ModelMatrix');
+    this.u_NormalMatrix = this.gl.getUniformLocation(this.program, 'u_NormalMatrix');
+    this.u_AmbientLight = this.gl.getUniformLocation(this.program, 'u_AmbientLight'); // 环境光的颜色
+    this.u_LightDirection = this.gl.getUniformLocation(this.program, 'u_LightDirection'); // 平行光的光照方向
     this.g_modelMatrix = new Matrix4();
     this.g_modelMatrix.translate(this.entity.translate[0], this.entity.translate[1], this.entity.translate[2]);
     this.g_modelMatrix.scale(this.entity.scale[0], this.entity.scale[1], this.entity.scale[2]);
@@ -89,6 +109,9 @@ class TextureLoader {
 
     // Write the indices to the buffer object
     this.vertexIndexBuffer = this.gl.createBuffer();
+
+    // Write the normals to the buffer object
+    this.normalBuffer = this.gl.createBuffer();
   }
 
   initTextures() {
@@ -131,21 +154,26 @@ class TextureLoader {
   render() {
     this.gl.useProgram(this.program);
 
+    // vertexBuffer to a_Position
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.vertexBuffer);
     this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(this.entity.vertex), this.gl.STATIC_DRAW);
-
     this.gl.vertexAttribPointer(this.a_Position, 3, this.gl.FLOAT, false, 0, 0);
     this.gl.enableVertexAttribArray(this.a_Position);
 
 
+    // vertexTexCoordBuffer to a_TexCoord
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.vertexTexCoordBuffer);
     this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(this.entity.texCoord), this.gl.STATIC_DRAW);
-
     this.gl.vertexAttribPointer(this.a_TexCoord, 2, this.gl.FLOAT, false, 0, 0);
     this.gl.enableVertexAttribArray(this.a_TexCoord);
 
-    this.gl.activeTexture(this.gl[`TEXTURE${this.activeTextureIndex}`]);
+    // normalBuffer to a_Normal
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.normalBuffer);
+    this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(this.entity.normal), this.gl.STATIC_DRAW);
+    this.gl.vertexAttribPointer(this.a_Normal, 3, this.gl.FLOAT, false, 0, 0);
+    this.gl.enableVertexAttribArray(this.a_Normal);
 
+    this.gl.activeTexture(this.gl[`TEXTURE${this.activeTextureIndex}`]);
 
     this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, this.vertexIndexBuffer);
     this.gl.bufferData(this.gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(this.entity.index), this.gl.STATIC_DRAW);
@@ -163,6 +191,9 @@ class TextureLoader {
     this.gl.uniformMatrix4fv(this.u_NormalMatrix, false, this.g_normalMatrix.elements);
     this.gl.uniformMatrix4fv(this.u_ModelMatrix, false, this.g_modelMatrix.elements);
 
+    // 设置光照，包括环境光颜色和平行光方向
+    this.gl.uniform3fv(this.u_AmbientLight, sceneAmbientLight);
+    this.gl.uniform3fv(this.u_LightDirection, sceneDirectionLight);
 
 
     // Draw the texture

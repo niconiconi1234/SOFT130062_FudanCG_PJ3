@@ -14,20 +14,38 @@ class SimpleColoredObjectLoader {
 
   initShaders() {
     let VSHADER_SOURCE = `
-        attribute vec4 a_Position;
+        attribute vec4 a_Position; varying vec3 v_Position;
         attribute vec4 a_Color; varying vec4 v_Color;
+        attribute vec4 a_Normal; varying vec3 v_Normal;
         uniform mat4 u_MvpMatrix;
+        uniform mat4 u_ModelMatrix;
+        uniform mat4 u_NormalMatrix;
         void main() {
             gl_Position = u_MvpMatrix * a_Position;
             v_Color = a_Color;
+            v_Normal = normalize(vec3(u_NormalMatrix * a_Normal));
+            v_Position = vec3(u_ModelMatrix * a_Position);
         }`;
     let FSHADER_SOURCE = `
         #ifdef GL_ES
         precision mediump float;
         #endif
+        varying vec3 v_Position;
         varying vec4 v_Color;
+        varying vec3 v_Normal;
+        uniform vec3 u_LightDirection; // 平行光的光照方向
+        uniform vec3 u_AmbientLight; // 环境光的颜色
         void main() {
-            gl_FragColor = v_Color;
+            vec3 paraLight = vec3(1.0, 1.0, 1.0); // 平行光的颜色
+            
+            vec3 normal = v_Normal;
+            vec3 lightDirection = normalize(u_LightDirection);
+
+            float nDotL = max(dot(lightDirection, normal), 0.0);
+            vec3 diffuse1 = paraLight * v_Color.xyz * nDotL; // 平行光造成的漫反射光的颜色
+            vec3 ambient = u_AmbientLight * v_Color.xyz;
+            
+            gl_FragColor = vec4(diffuse1 + ambient, v_Color.a);
         }`;
     this.program = createProgram(this.gl, VSHADER_SOURCE, FSHADER_SOURCE);
     if (!this.program) {
@@ -42,17 +60,27 @@ class SimpleColoredObjectLoader {
     // 获得a_Position和a_Color的存储位置
     this.a_Position = this.gl.getAttribLocation(this.program, 'a_Position');
     this.a_Color = this.gl.getAttribLocation(this.program, 'a_Color')
-    if (this.a_Position < 0 || this.a_Color < 0) {
-      throw new Error('Failed to get the storage location of a_Position or a_Color');
+    this.a_Normal = this.gl.getAttribLocation(this.program, 'a_Normal')
+    if (this.a_Position < 0 || this.a_Color < 0 || this.a_Normal < 0) {
+      throw new Error('Failed to get the storage location of a_Position, a_Color or a_Normal');
     }
 
+    this.u_MvpMatrix = this.gl.getUniformLocation(this.program, 'u_MvpMatrix');
+    this.u_ModelMatrix = this.gl.getUniformLocation(this.program, 'u_ModelMatrix');
+    this.u_NormalMatrix = this.gl.getUniformLocation(this.program, 'u_NormalMatrix');
+    this.u_LightDirection = this.gl.getUniformLocation(this.program, 'u_LightDirection');
+    this.u_AmbientLight = this.gl.getUniformLocation(this.program, 'u_AmbientLight');
+
     // 从entity中获得顶点和颜色数据
-    this.vertexColor = this.entity.vertex;
+    this.vertex = this.entity.vertex;
+    this.color = this.entity.color;
     this.index = this.entity.index
+    this.normal = this.entity.normal
 
     this.bufferMap = {
-      vertexBuffer: this.initArrayBufferForLaterUse(new Float32Array(this.vertexColor), 3, this.gl.FLOAT, 6 * Float32Array.BYTES_PER_ELEMENT, 0),
-      colorBuffer: this.initArrayBufferForLaterUse(new Float32Array(this.vertexColor), 3, this.gl.FLOAT, 6 * Float32Array.BYTES_PER_ELEMENT, 3 * Float32Array.BYTES_PER_ELEMENT),
+      vertexBuffer: this.initArrayBufferForLaterUse(new Float32Array(this.vertex), 3, this.gl.FLOAT),
+      colorBuffer: this.initArrayBufferForLaterUse(new Float32Array(this.color), 3, this.gl.FLOAT),
+      normalBuffer: this.initArrayBufferForLaterUse(new Float32Array(this.normal), 3, this.gl.FLOAT),
       indexBuffer: this.initElementArrayBufferForLaterUse(new Uint8Array(this.index)),
       indexNum: this.index.length
     }
@@ -66,7 +94,7 @@ class SimpleColoredObjectLoader {
    * @param stride
    * @param offset
    */
-  initArrayBufferForLaterUse(data, elemNumEachAttrib, dataType, stride, offset) {
+  initArrayBufferForLaterUse(data, elemNumEachAttrib, dataType, stride = 0, offset = 0) {
     const buf = this.gl.createBuffer();
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER, buf);
     this.gl.bufferData(this.gl.ARRAY_BUFFER, data, this.gl.STATIC_DRAW);
@@ -91,8 +119,6 @@ class SimpleColoredObjectLoader {
 
   initPerspective() {
     this.gl.enable(this.gl.DEPTH_TEST)
-    // 获得u_MvpMatrix的存储位置
-    this.u_MvpMatrix = this.gl.getUniformLocation(this.program, 'u_MvpMatrix');
 
     // modelMatrix，表示物体旋转/平移/缩放的模型矩阵
     const modelMatrix = new Matrix4();
@@ -108,6 +134,7 @@ class SimpleColoredObjectLoader {
     this.gl.useProgram(this.program);
     this.allocateArrayBuffer(this.bufferMap.vertexBuffer, this.a_Position) // 把vertexBuffer分配给变量a_Position
     this.allocateArrayBuffer(this.bufferMap.colorBuffer, this.a_Color) // 把colorBuffer分配给变量a_Color
+    this.allocateArrayBuffer(this.bufferMap.normalBuffer, this.a_Normal) // 把normalBuffer分配给变量a_Normal
     this.bindElementArrayBuffer(this.bufferMap.indexBuffer) // 把indexBuffer绑定成element array buffer
     this.setAllUniformVariables() // 设置所有uniform变量
     this.gl.drawElements(this.gl.TRIANGLES, this.index.length, this.gl.UNSIGNED_BYTE, 0);
@@ -137,8 +164,27 @@ class SimpleColoredObjectLoader {
    * 渲染前，设置所有uniform变量
    */
   setAllUniformVariables() {
+    // u_MvpMatrix
     const mvpMatrix = Camera.getMatrix().multiply(this.uniformMap.modelMatrix)
     this.gl.uniformMatrix4fv(this.u_MvpMatrix, false, mvpMatrix.elements);
+
+    // u_ModelMatrix
+    this.gl.uniformMatrix4fv(this.u_ModelMatrix, false, this.uniformMap.modelMatrix.elements);
+
+    // u_NormalMatrix
+    const normalMatrix = new Matrix4();
+    normalMatrix.setInverseOf(this.uniformMap.modelMatrix);
+    normalMatrix.transpose();
+    this.gl.uniformMatrix4fv(this.u_NormalMatrix, false, normalMatrix.elements);
+
+    // u_LightDirection 平行光方向
+    const lightDirection = new Vector3(sceneDirectionLight);
+    lightDirection.normalize(); // Normalize
+    this.gl.uniform3fv(this.u_LightDirection, lightDirection.elements);
+
+    // u_AmbientLight 环境光颜色
+    this.gl.uniform3fv(this.u_AmbientLight, sceneAmbientLight);
+
   }
 }
 

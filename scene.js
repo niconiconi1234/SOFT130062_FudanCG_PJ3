@@ -1,8 +1,15 @@
 //3D场景配置文件
+const normalMap = {
+  front: [0.0, 0.0, 1.0],
+  back: [0.0, 0.0, -1.0],
+  left: [-1.0, 0.0, 0.0],
+  right: [1.0, 0.0, 0.0],
+  up: [0.0, 1.0, 0.0],
+  down: [0.0, -1.0, 0.0]
+}
 
 //地面模型的相关信息
 var floorRes = {
-
   //地面的四个顶点坐标，形状是一个正方形矩形，在xz平面内，y为0
   vertex: [
     -1.0, 0.0, 1.0,
@@ -16,6 +23,12 @@ var floorRes = {
     0.0, 0.0,
     1.0, 1.0,
     1.0, 0.0
+  ],
+  normal: [
+    ...normalMap.up,
+    ...normalMap.up,
+    ...normalMap.up,
+    ...normalMap.up
   ],
   //地面的面片索引，每三个一组，数字代表了vertex的序号
   //这么做的原因是，webgl只能绘制三角形，因此矩形的地面由两个三角形组成
@@ -31,6 +44,7 @@ var floorRes = {
   //地面所对应的纹理图片文件的路径
   texImagePath: "./image/floor.jpg"
 }
+
 
 //纹理箱体模型的相关信息，具体含义和地面相同
 var boxRes = {
@@ -62,6 +76,14 @@ var boxRes = {
     1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0,
     1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0
   ],
+  normal: [
+    ...normalMap.front, ...normalMap.front, ...normalMap.front, ...normalMap.front,
+    ...normalMap.right, ...normalMap.right, ...normalMap.right, ...normalMap.right,
+    ...normalMap.up, ...normalMap.up, ...normalMap.up, ...normalMap.up,
+    ...normalMap.left, ...normalMap.left, ...normalMap.left, ...normalMap.left,
+    ...normalMap.down, ...normalMap.down, ...normalMap.down, ...normalMap.down,
+    ...normalMap.back, ...normalMap.back, ...normalMap.back, ...normalMap.back
+  ],
   //顶点索引，每个面都由两个三角形组成，比如第0,1,2号顶点，和第0,2,3号顶点构成了箱子的顶面
   index: [       // Indices of the vertices
     0, 1, 2, 0, 2, 3,    // front
@@ -82,7 +104,7 @@ var boxRes = {
 // 颜色渐变箱体模型绘制参数
 var cubeRes = {
   //顶点坐标，cube由8个顶点组成，每个顶点对应一种颜色
-    // Create a cube
+  // Create a cube
   //    v6----- v5
   //   /|      /|
   //  v1------v0|
@@ -90,24 +112,60 @@ var cubeRes = {
   //  | |v7---|-|v4
   //  |/      |/
   //  v2------v3
-  vertex: [// Vertex coordinates
-     1.0,  1.0,  1.0,     1.0,  1.0,  1.0,  // v0 White
-    -1.0,  1.0,  1.0,     1.0,  0.0,  1.0,  // v1 Magenta
-    -1.0, -1.0,  1.0,     1.0,  0.0,  0.0,  // v2 Red
-     1.0, -1.0,  1.0,     1.0,  1.0,  0.0,  // v3 Yellow
-     1.0, -1.0, -1.0,     0.0,  1.0,  0.0,  // v4 Green
-     1.0,  1.0, -1.0,     0.0,  1.0,  1.0,  // v5 Cyan
-    -1.0,  1.0, -1.0,     0.0,  0.0,  1.0,  // v6 Blue
-    -1.0, -1.0, -1.0,     0.0,  0.0,  0.0   // v7 Black
+  vertexMap: {
+    0: [1.0, 1.0, 1.0],     // v0
+    1: [-1.0, 1.0, 1.0],    // v1
+    2: [-1.0, -1.0, 1.0],   // v2
+    3: [1.0, -1.0, 1.0],    // v3
+    4: [1.0, -1.0, -1.0],   // v4
+    5: [1.0, 1.0, -1.0],    // v5
+    6: [-1.0, 1.0, -1.0],   // v6
+    7: [-1.0, -1.0, -1.0]   // v7
+  },
+  colorMap: {
+    0: [1.0, 1.0, 1.0], // White, for v0
+    1: [1.0, 0.0, 1.0], // Magenta, for v1
+    2: [1.0, 0.0, 0.0], // Red, for v2
+    3: [1.0, 1.0, 0.0], // Yellow, for v3
+    4: [0.0, 1.0, 0.0], // Green, for v4
+    5: [0.0, 1.0, 1.0], // Cyan, for v5
+    6: [0.0, 0.0, 1.0], // Blue, for v6
+    7: [0.0, 0.0, 0.0]  // Black, for v7
+  },
+  get vertexIds() {
+    return [
+      0, 1, 2, 3, // v0-v1-v2-v3 front
+      0, 3, 4, 5, // v0-v3-v4-v5 right
+      0, 5, 6, 1, // v0-v5-v6-v1 up
+      1, 6, 7, 2, // v1-v6-v7-v2 left
+      7, 4, 3, 2, // v7-v4-v3-v2 down
+      4, 7, 6, 5  // v4-v7-v6-v5 back
+    ]
+  },
+  get vertex() {
+    const vertexIds = this.vertexIds;
+    return vertexIds.map((vertexId) => this.vertexMap[vertexId]).flat() // [[1,2],[3,4]].flat() => [1,2,3,4]
+  },
+  get color() {
+    const vertexIds = this.vertexIds;
+    return vertexIds.map((vertexId) => this.colorMap[vertexId]).flat() // [[1,2],[3,4]].flat() => [1,2,3,4]
+  },
+  normal: [
+    ...normalMap.front, ...normalMap.front, ...normalMap.front, ...normalMap.front,
+    ...normalMap.right, ...normalMap.right, ...normalMap.right, ...normalMap.right,
+    ...normalMap.up, ...normalMap.up, ...normalMap.up, ...normalMap.up,
+    ...normalMap.left, ...normalMap.left, ...normalMap.left, ...normalMap.left,
+    ...normalMap.down, ...normalMap.down, ...normalMap.down, ...normalMap.down,
+    ...normalMap.back, ...normalMap.back, ...normalMap.back, ...normalMap.back,
   ],
   //顶点索引，每个面都由两个三角形组成，比如第0,1,2号顶点，和第0,2,3号顶点构成了箱子的顶面
   index: [       // Indices of the vertices
-    0, 1, 2,   0, 2, 3,    // front
-    0, 3, 4,   0, 4, 5,    // right
-    0, 5, 6,   0, 6, 1,    // up
-    1, 6, 7,   1, 7, 2,    // left
-    7, 4, 3,   7, 3, 2,    // down
-    4, 7, 6,   4, 6, 5     // back
+    0, 1, 2, 0, 2, 3,    // front
+    4, 5, 6, 4, 6, 7,    // right
+    8, 9, 10, 8, 10, 11,    // up
+    12, 13, 14, 12, 14, 15,    // left
+    16, 17, 18, 16, 18, 19,    // down
+    20, 21, 22, 20, 22, 23     // back
   ],
   //箱子先放大8倍
   scale: [8.0, 8.0, 8.0],
