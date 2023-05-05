@@ -209,7 +209,7 @@ class TextureLoader {
     // 设置光照，包括环境光颜色，平行光方向，点光源位置，点光源颜色
     this.gl.uniform3fv(this.u_AmbientLight, sceneAmbientLight);
     this.gl.uniform3fv(this.u_LightDirection, sceneDirectionLight);
-    this.gl.uniform3fv(this.u_PointLightPosition, CameraPara.eye); // 点光源位置与相机位置一致
+    this.gl.uniform3fv(this.u_PointLightPosition, Camera.eye.elements); // 点光源位置与相机位置一致
     this.gl.uniform3fv(this.u_PointLight, scenePointLightColor); // 点光源颜色
     this.gl.uniform1i(this.u_PointLightOn, scenePointLightOn); // 点光源是否开启
 

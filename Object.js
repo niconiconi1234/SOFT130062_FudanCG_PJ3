@@ -172,7 +172,7 @@ class ObjectLoader {
     lightDirection.normalize();
     this.gl.uniform3fv(this.u_LightDirection, lightDirection.elements); // 平行光的方向
     this.gl.uniform3fv(this.u_AmbientLight, sceneAmbientLight); // 环境光的颜色
-    this.gl.uniform3fv(this.u_PointLightPosition, CameraPara.eye); // 点光源的位置，和相机位置一致
+    this.gl.uniform3fv(this.u_PointLightPosition, Camera.eye.elements); // 点光源的位置，和相机位置一致
     this.gl.uniform3fv(this.u_PointLight, scenePointLightColor); // 点光源的颜色
     this.gl.uniform1i(this.u_PointLightOn, scenePointLightOn); // 点光源是否开启
 

@@ -200,7 +200,7 @@ class SimpleColoredObjectLoader {
     this.gl.uniform3fv(this.u_AmbientLight, sceneAmbientLight);
 
     // u_PointLightPosition 点光源位置
-    this.gl.uniform3fv(this.u_PointLightPosition, CameraPara.eye); // 点光源位置和相机位置一致
+    this.gl.uniform3fv(this.u_PointLightPosition, Camera.eye.elements); // 点光源位置和相机位置一致
 
     // u_PointLight 点光源颜色
     this.gl.uniform3fv(this.u_PointLight, scenePointLightColor);
