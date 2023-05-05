@@ -270,6 +270,9 @@ var sceneAmbientLight = [0.2, 0.2, 0.2];
 //平行光的方向
 var sceneDirectionLight = [0.35, 0.35, 0.87];
 
-//点光源的颜色，点光源的位置应当实时与相机位置（eye）相同
+// 点光源的颜色，点光源的位置应当实时与相机位置（eye）相同
 var scenePointLightColor = [0.5, 0.5, 0.6];
+
+// 点光源是否开启
+let scenePointLightOn = false;
 

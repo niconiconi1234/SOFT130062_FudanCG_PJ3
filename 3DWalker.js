@@ -77,15 +77,25 @@ class SceneLoader {
 
     cameraMap.forEach((val, key)=> {
           this.keyboardController.bind(key, {
-            on: (()=> {
+            on: (() => {
               Camera.state[val] = 1;
             }),
-            off: (()=> {
+            off: (() => {
               Camera.state[val] = 0;
             })
           });
         }
     )
+
+    // 按下F点光源开启，再按一次关闭
+    this.keyboardController.bind('f', {
+      on: () => {
+        scenePointLightOn = true // 点光源开启
+      },
+      off: () => {
+        scenePointLightOn = false // 点光源关闭
+      }
+    });
   }
 
   initCamera(timestamp) {

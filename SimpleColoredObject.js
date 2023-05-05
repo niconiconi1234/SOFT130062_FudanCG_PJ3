@@ -34,18 +34,29 @@ class SimpleColoredObjectLoader {
         varying vec4 v_Color;
         varying vec3 v_Normal;
         uniform vec3 u_LightDirection; // 平行光的光照方向
+        uniform vec3 u_PointLightPosition; // 点光源的位置
+        uniform vec3 u_PointLight; // 点光源发出的光的颜色
+        uniform bool u_PointLightOn; // 点光源是否开启
         uniform vec3 u_AmbientLight; // 环境光的颜色
         void main() {
             vec3 paraLight = vec3(1.0, 1.0, 1.0); // 平行光的颜色
             
             vec3 normal = v_Normal;
-            vec3 lightDirection = normalize(u_LightDirection);
-
+            
+            vec3 lightDirection = normalize(u_LightDirection); // 平行光的光照方向
             float nDotL = max(dot(lightDirection, normal), 0.0);
             vec3 diffuse1 = paraLight * v_Color.xyz * nDotL; // 平行光造成的漫反射光的颜色
+            
+            vec3 diffuse2 = vec3(0.0, 0.0, 0.0); // 点光源造成的漫反射光的颜色
+            if (u_PointLightOn) {
+              vec3 pointLightDirection = normalize(u_PointLightPosition - v_Position); // 点光源的光照方向
+              float nDotL2 = max(dot(pointLightDirection, normal), 0.0);
+              diffuse2 = u_PointLight * v_Color.xyz * nDotL2; // 点光源造成的漫反射光的颜色
+            }
+            
             vec3 ambient = u_AmbientLight * v_Color.xyz;
             
-            gl_FragColor = vec4(diffuse1 + ambient, v_Color.a);
+            gl_FragColor = vec4(diffuse1 + diffuse2 + ambient, v_Color.a);
         }`;
     this.program = createProgram(this.gl, VSHADER_SOURCE, FSHADER_SOURCE);
     if (!this.program) {
@@ -68,8 +79,11 @@ class SimpleColoredObjectLoader {
     this.u_MvpMatrix = this.gl.getUniformLocation(this.program, 'u_MvpMatrix');
     this.u_ModelMatrix = this.gl.getUniformLocation(this.program, 'u_ModelMatrix');
     this.u_NormalMatrix = this.gl.getUniformLocation(this.program, 'u_NormalMatrix');
-    this.u_LightDirection = this.gl.getUniformLocation(this.program, 'u_LightDirection');
-    this.u_AmbientLight = this.gl.getUniformLocation(this.program, 'u_AmbientLight');
+    this.u_LightDirection = this.gl.getUniformLocation(this.program, 'u_LightDirection'); // 平行光的光照方向
+    this.u_AmbientLight = this.gl.getUniformLocation(this.program, 'u_AmbientLight'); // 环境光的颜色
+    this.u_PointLightPosition = this.gl.getUniformLocation(this.program, 'u_PointLightPosition'); // 点光源的位置
+    this.u_PointLight = this.gl.getUniformLocation(this.program, 'u_PointLight'); // 点光源发出的光的颜色
+    this.u_PointLightOn = this.gl.getUniformLocation(this.program, 'u_PointLightOn'); // 点光源是否开启
 
     // 从entity中获得顶点和颜色数据
     this.vertex = this.entity.vertex;
@@ -185,6 +199,14 @@ class SimpleColoredObjectLoader {
     // u_AmbientLight 环境光颜色
     this.gl.uniform3fv(this.u_AmbientLight, sceneAmbientLight);
 
+    // u_PointLightPosition 点光源位置
+    this.gl.uniform3fv(this.u_PointLightPosition, CameraPara.eye); // 点光源位置和相机位置一致
+
+    // u_PointLight 点光源颜色
+    this.gl.uniform3fv(this.u_PointLight, scenePointLightColor);
+
+    // u_PointLightOn 点光源是否开启
+    this.gl.uniform1i(this.u_PointLightOn, scenePointLightOn);
   }
 }
 

@@ -49,19 +49,30 @@ class TextureLoader {
             varying vec3 v_Position;
             varying vec3 v_Normal;
             uniform vec3 u_LightDirection; // 平行光的光照方向
+            uniform vec3 u_PointLightPosition; // 点光源的位置
+            uniform vec3 u_PointLight; // 点光源发出的光的颜色
+            uniform bool u_PointLightOn; // 点光源是否开启
             uniform vec3 u_AmbientLight; // 环境光的颜色
             void main() {
               vec3 paraLight = vec3(1.0, 1.0, 1.0); // 平行光的颜色
               vec4 color = texture2D(u_Sampler, v_TexCoord); // 从纹理中获取颜色
               
               vec3 normal = v_Normal;
-              vec3 lightDirection = normalize(u_LightDirection);
-
+              
+              vec3 lightDirection = normalize(u_LightDirection); // 平行光的光照方向
               float nDotL = max(dot(lightDirection, normal), 0.0);
               vec3 diffuse1 = paraLight * color.xyz * nDotL; // 平行光造成的漫反射光的颜色
+              
+              vec3 diffuse2 = vec3(0.0, 0.0, 0.0); // 点光源造成的漫反射光的颜色
+              if (u_PointLightOn) {
+                vec3 pointLightDirection = normalize(u_PointLightPosition - v_Position); // 点光源的光照方向
+                float nDotL2 = max(dot(pointLightDirection, normal), 0.0);
+                diffuse2 = u_PointLight * color.xyz * nDotL2; // 点光源造成的漫反射光的颜色
+              }
+              
               vec3 ambient = u_AmbientLight * color.xyz;
           
-              gl_FragColor = vec4(diffuse1 + ambient, color.a);
+              gl_FragColor = vec4(diffuse1 + diffuse2 + ambient, color.a);
             }`;
 
     // Initialize shaders
@@ -94,6 +105,10 @@ class TextureLoader {
     this.u_NormalMatrix = this.gl.getUniformLocation(this.program, 'u_NormalMatrix');
     this.u_AmbientLight = this.gl.getUniformLocation(this.program, 'u_AmbientLight'); // 环境光的颜色
     this.u_LightDirection = this.gl.getUniformLocation(this.program, 'u_LightDirection'); // 平行光的光照方向
+    this.u_PointLightPosition = this.gl.getUniformLocation(this.program, 'u_PointLightPosition'); // 点光源的位置
+    this.u_PointLight = this.gl.getUniformLocation(this.program, 'u_PointLight'); // 点光源发出的光的颜色
+    this.u_PointLightOn = this.gl.getUniformLocation(this.program, 'u_PointLightOn'); // 点光源是否开启
+
     this.g_modelMatrix = new Matrix4();
     this.g_modelMatrix.translate(this.entity.translate[0], this.entity.translate[1], this.entity.translate[2]);
     this.g_modelMatrix.scale(this.entity.scale[0], this.entity.scale[1], this.entity.scale[2]);
@@ -191,10 +206,12 @@ class TextureLoader {
     this.gl.uniformMatrix4fv(this.u_NormalMatrix, false, this.g_normalMatrix.elements);
     this.gl.uniformMatrix4fv(this.u_ModelMatrix, false, this.g_modelMatrix.elements);
 
-    // 设置光照，包括环境光颜色和平行光方向
+    // 设置光照，包括环境光颜色，平行光方向，点光源位置，点光源颜色
     this.gl.uniform3fv(this.u_AmbientLight, sceneAmbientLight);
     this.gl.uniform3fv(this.u_LightDirection, sceneDirectionLight);
-
+    this.gl.uniform3fv(this.u_PointLightPosition, CameraPara.eye); // 点光源位置与相机位置一致
+    this.gl.uniform3fv(this.u_PointLight, scenePointLightColor); // 点光源颜色
+    this.gl.uniform1i(this.u_PointLightOn, scenePointLightOn); // 点光源是否开启
 
     // Draw the texture
     this.gl.drawElements(this.gl.TRIANGLE_STRIP, this.entity.index.length, this.gl.UNSIGNED_SHORT, 0);
